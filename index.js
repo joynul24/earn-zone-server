@@ -6,13 +6,13 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // middleware
-// const corsOptions = {
-//   origin: ['http://localhost:5173/'],
-//   Credential: true,
-//   optionSuccessStatus: 200
-// }
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
 
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 
@@ -74,7 +74,7 @@ async function run() {
         name: user.name,
         image: user.image,
         coin: user.coin || 0,
-        role: user.role || "user",
+        role: user.role || "worker",
       });
 
       res.status(201).send(result);
