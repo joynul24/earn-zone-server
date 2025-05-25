@@ -7,7 +7,7 @@ const port = process.env.PORT || 5000;
 
 // middleware
 const corsOptions = {
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://earn-zone-client.web.app', 'https://earn-zone-client.firebaseapp.com'],
   credentials: true,
   optionsSuccessStatus: 200
 };
