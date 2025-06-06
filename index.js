@@ -44,21 +44,8 @@ async function run() {
 
 
     // dashboard a user role condition ar api
-    app.get('/users/:email', async (req, res) => {
-      const email = req.params.email;
 
-      try {
-        const user = await usersCollection.findOne({ email });
 
-        if (user) {
-          res.json({ role: user.role });
-        } else {
-          res.status(404).json({ message: 'User not found' });
-        }
-      } catch (err) {
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
 
 
 
@@ -70,15 +57,34 @@ async function run() {
 
     // get the user coin api
     app.get('/users/:email', async (req, res) => {
-      const email = req.params.email.toLowerCase();
-      const user = await usersCollection.findOne({ email });
-      if (!user) {
-        return res.send({ email, coin: 0 });
+      try {
+        const email = req.params.email.toLowerCase();
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          return res.send({
+            email,
+            coin: 0,
+            role: 'worker',
+            name: '',
+            image: ''
+          });
+        }
+
+        // Ensure all required fields are present
+        res.send({
+          email: user.email,
+          coin: user.coin || 0,
+          role: user.role || 'worker',
+          name: user.name || '',
+          image: user.image || ''
+        });
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).send({ error: 'Internal Server Error' });
       }
+    });
 
-      res.send(user);
-
-    })
 
 
     app.post('/users', async (req, res) => {
