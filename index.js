@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
+
 // middleware
 const corsOptions = {
   origin: ['http://localhost:5173', 'https://earn-zone-client.web.app', 'https://earn-zone-client.firebaseapp.com'],
@@ -44,8 +45,19 @@ async function run() {
 
 
     // dashboard a user role condition ar api
-
-
+    app.get('/users/role/:email', async (req, res) => {
+      try {
+        const email = req.params.email.toLowerCase();
+        const user = await usersCollection.findOne({ email });
+        if (!user) {
+          return res.status(404).json({ role: null });
+        }
+        res.json({ role: user.role || 'worker' });
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
 
 
 
