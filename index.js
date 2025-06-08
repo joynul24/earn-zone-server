@@ -44,6 +44,26 @@ async function run() {
     })
 
 
+    // user Coin pewar API
+    app.get("/users/coin/:email", async (req, res) => {
+      const email = req.params.email;
+
+      try {
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json({ coin: user.coin || 0 });
+      } catch (error) {
+        console.error("Error fetching coin:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
     // dashboard a user role condition ar api
     app.get('/users/role/:email', async (req, res) => {
       try {
