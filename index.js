@@ -36,6 +36,7 @@ async function run() {
 
     const usersCollection = client.db('earnZoneDB').collection('users')
     const reviewsCollection = client.db('earnZoneDB').collection('reviews')
+    const tasksCollection = client.db('earnZoneDB').collection('tasks')
 
 
     app.get('/reviews', async (req, res) => {
@@ -44,7 +45,20 @@ async function run() {
     })
 
 
-    // user Coin pewar API
+    // Buyer Task save API
+    app.post('/buyer/tasks', async (req, res) => {
+      try {
+        const task = req.body;
+        const result = await tasksCollection.insertOne(task);
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error adding task:", error);
+        res.status(500).json({ message: "Failed to add task" });
+      }
+    });
+
+
+    // user Coin pawar API
     app.get("/users/coin/:email", async (req, res) => {
       const email = req.params.email;
 
@@ -137,6 +151,38 @@ async function run() {
 
       res.status(201).send(result);
     });
+
+
+
+    // coin cut API
+    app.patch('/users/deduct-coin/:email', async (req, res) => {
+      const email = req.params.email;
+      const { coin } = req.body;
+
+      try {
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        if (user.coin < coin) {
+          return res.status(400).json({ message: "Insufficient coins" });
+        }
+
+        const result = await usersCollection.updateOne(
+          { email },
+          { $inc: { coin: -coin } }
+        );
+
+        res.json({ message: "Coin deducted", result });
+      } catch (error) {
+        console.error("Error deducting coin:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
 
 
     // Coin Update API
