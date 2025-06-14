@@ -58,6 +58,39 @@ async function run() {
     });
 
 
+
+
+    // Add Coin API (কয়েন যোগ করা)
+    app.patch('/users/add-coin/:email', async (req, res) => {
+      const email = req.params.email;
+      const { coin } = req.body;
+
+      try {
+        const user = await usersCollection.findOne({ email });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        const result = await usersCollection.updateOne(
+          { email },
+          { $inc: { coin: coin } } // কয়েন যোগ করা
+        );
+
+        // আপডেট শেষে ইউজারের নতুন কয়েন দেখাতে চাইলে:
+        const updatedUser = await usersCollection.findOne({ email });
+
+        res.json({ message: "Coin added", updatedCoins: updatedUser.coin });
+      } catch (error) {
+        console.error("Error adding coin:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+
+
     // user Coin pawar API
     app.get("/users/coin/:email", async (req, res) => {
       const email = req.params.email;
