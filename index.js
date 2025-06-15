@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -187,6 +187,81 @@ async function run() {
 
 
 
+    // get tasks by user email
+    app.get('/tasks/by-user/:email', async (req, res) => {
+      try {
+        const email = req.params.email.toLowerCase();
+        const tasks = await tasksCollection.find({ email: email }).toArray();
+        res.status(200).json(tasks);
+      } catch (error) {
+        console.error("Error fetching tasks by user:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+    // Update Task by ID
+    app.patch('/tasks/:id', async (req, res) => {
+      try {
+        const taskId = req.params.id;
+        const updatedTask = req.body;
+
+        const result = await tasksCollection.updateOne(
+          { _id: new ObjectId(taskId) },
+          { $set: updatedTask }
+        );
+
+        res.status(200).json(result);
+      } catch (error) {
+        console.error("Error updating task:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+
+    // Delete Task by ID
+    app.delete('/tasks/:id', async (req, res) => {
+      try {
+        const taskId = req.params.id;
+        const result = await tasksCollection.deleteOne({ _id: new ObjectId(taskId) });
+
+        if (result.deletedCount === 1) {
+          res.status(200).json({ message: 'Task deleted successfully' });
+        } else {
+          res.status(404).json({ message: 'Task not found' });
+        }
+      } catch (error) {
+        console.error("Error deleting task:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+    // Coin increase API
+    app.patch('/users/coin-increase/:email', async (req, res) => {
+      const email = req.params.email;
+      const { coin } = req.body;
+
+      try {
+        const result = await usersCollection.updateOne(
+          { email },
+          { $inc: { coin: coin } }
+        );
+        res.json({ message: "Coin refunded", result });
+      } catch (error) {
+        console.error("Error refunding coin:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
+
+
+
     // coin cut API
     app.patch('/users/deduct-coin/:email', async (req, res) => {
       const email = req.params.email;
@@ -214,35 +289,6 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
-
-
-
-
-    // Coin Update API
-    // app.post('/update-coin', async (req, res) => {
-    //   const { userId, amount } = req.body;
-
-    //   if (!userId || typeof amount !== 'number') {
-    //     return res.status(400).json({ success: false, message: 'Invalid data' });
-    //   }
-
-    //   try {
-    //     const user = await User.findById(userId);
-    //     if (!user) {
-    //       return res.status(404).json({ success: false, message: 'User not found' });
-    //     }
-
-    //     user.coins += amount;
-
-    //     // Coin কখনো negative হলে না রাখতে চাইলে:
-    //     if (user.coins < 0) user.coins = 0;
-
-    //     await user.save();
-    //     res.json({ success: true, coins: user.coins });
-    //   } catch (err) {
-    //     res.status(500).json({ success: false, message: 'Server error' });
-    //   }
-    // });
 
 
 
