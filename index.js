@@ -37,6 +37,7 @@ async function run() {
     const reviewsCollection = client.db('earnZoneDB').collection('reviews')
     const tasksCollection = client.db('earnZoneDB').collection('tasks')
     const submissionCollection = client.db('earnZoneDB').collection('submissions')
+    const withdrawalsCollection = client.db('earnZoneDB').collection('withdrawals')
 
     app.get('/reviews', async (req, res) => {
       const result = await reviewsCollection.find().toArray();
@@ -101,6 +102,39 @@ async function run() {
       } catch (error) {
         res.status(500).json({ message: 'Failed to fetch submissions' });
       }
+    });
+
+
+
+
+    // Coin Withdrols releted API
+
+    app.get('/withdrawals/history/:email', async (req, res) => {
+      try {
+        const email = req.params.email.toLowerCase();
+        const result = await withdrawalsCollection
+          .find({ worker_email: email })
+          .sort({ withdraw_date: -1 }) // latest first
+          .toArray();
+
+        res.status(200).json(result);
+      } catch (error) {
+        res.status(500).json({ message: "Failed to fetch payment history." });
+      }
+    });
+
+
+    app.get('/users/coin/:email', async (req, res) => {
+      const email = req.params.email;
+      const user = await usersCollection.findOne({ email });
+      res.send({ coin: user?.coin || 0 });
+    });
+
+
+    app.post('/withdrawals', async (req, res) => {
+      const data = req.body;
+      const result = await withdrawalsCollection.insertOne(data);
+      res.send(result);
     });
 
 
