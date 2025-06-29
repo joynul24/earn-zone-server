@@ -32,17 +32,24 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
 
     const usersCollection = client.db('earnZoneDB').collection('users')
     const reviewsCollection = client.db('earnZoneDB').collection('reviews')
     const tasksCollection = client.db('earnZoneDB').collection('tasks')
-
+    const submissionCollection = client.db('earnZoneDB').collection('submissions')
 
     app.get('/reviews', async (req, res) => {
       const result = await reviewsCollection.find().toArray();
       res.send(result);
     })
+
+
+
+    app.get('/users', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result)
+    })
+
 
 
     // Buyer Task save API
@@ -52,7 +59,6 @@ async function run() {
         const result = await tasksCollection.insertOne(task);
         res.status(201).json(result);
       } catch (error) {
-        console.error("Error adding task:", error);
         res.status(500).json({ message: "Failed to add task" });
       }
     });
@@ -74,19 +80,28 @@ async function run() {
 
         const result = await usersCollection.updateOne(
           { email },
-          { $inc: { coin: coin } } // কয়েন যোগ করা
+          { $inc: { coin: coin } }
         );
 
-        // আপডেট শেষে ইউজারের নতুন কয়েন দেখাতে চাইলে:
         const updatedUser = await usersCollection.findOne({ email });
 
         res.json({ message: "Coin added", updatedCoins: updatedUser.coin });
       } catch (error) {
-        console.error("Error adding coin:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
 
+
+    // worker task submission pawar api
+    app.get('/submissions/by-worker/:email', async (req, res) => {
+      try {
+        const email = req.params.email.toLowerCase();
+        const submissions = await submissionCollection.find({ worker_email: email }).toArray();
+        res.status(200).json(submissions);
+      } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch submissions' });
+      }
+    });
 
 
 
@@ -104,7 +119,6 @@ async function run() {
 
         res.json({ coin: user.coin || 0 });
       } catch (error) {
-        console.error("Error fetching coin:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -121,17 +135,9 @@ async function run() {
         }
         res.json({ role: user.role || 'worker' });
       } catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Server error' });
       }
     });
-
-
-
-    app.get('/users', async (req, res) => {
-      const result = await usersCollection.find().toArray();
-      res.send(result)
-    })
 
 
     // get the user coin api
@@ -159,7 +165,6 @@ async function run() {
           image: user.image || ''
         });
       } catch (error) {
-        console.error("Error fetching user:", error);
         res.status(500).send({ error: 'Internal Server Error' });
       }
     });
@@ -186,6 +191,43 @@ async function run() {
     });
 
 
+    // Task submission releted API
+    app.post('/submissions/task', async (req, res) => {
+      try {
+        const submission = req.body;
+
+        if (!submission.task_id || !submission.worker_email || !submission.submission_details) {
+          return res.status(400).json({ message: 'Task ID, Worker Email, এবং Submission Details Needed' });
+        }
+
+        submission.status = submission.status || 'pending';
+        submission.current_date = submission.current_date || new Date();
+
+        const result = await submissionCollection.insertOne(submission);
+        res.status(201).json({ message: 'Submission saved!', id: result.insertedId });
+      } catch (err) {
+        res.status(500).json({ message: 'Server error' });
+      }
+    })
+
+
+    // Get single task by ID
+    app.get('/tasks/details/:id', async (req, res) => {
+      try {
+        const taskId = req.params.id;
+        const task = await tasksCollection.findOne({ _id: new ObjectId(taskId) });
+
+        if (!task) {
+          return res.status(404).json({ message: "Task not found" });
+        }
+
+        res.status(200).json(task);
+      } catch (error) {
+        console.error("Error fetching task by ID:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
 
     // get tasks by user email
     app.get('/tasks/by-user/:email', async (req, res) => {
@@ -194,10 +236,31 @@ async function run() {
         const tasks = await tasksCollection.find({ email: email }).toArray();
         res.status(200).json(tasks);
       } catch (error) {
-        console.error("Error fetching tasks by user:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
+
+
+
+    // Get all available tasks (required_workers > 0)
+    app.get('/tasks/available', async (req, res) => {
+      try {
+        const availableTasks = await tasksCollection
+          .find({
+            $expr: {
+              $gt: [{ $toInt: "$required_workers" }, 0]
+            }
+          })
+          .sort({ completion_date: 1 })
+          .toArray();
+        res.status(200).json(availableTasks);
+      } catch (error) {
+        console.error("Error fetching available tasks:", error);
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
+
 
 
 
@@ -214,7 +277,6 @@ async function run() {
 
         res.status(200).json(result);
       } catch (error) {
-        console.error("Error updating task:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -234,7 +296,6 @@ async function run() {
           res.status(404).json({ message: 'Task not found' });
         }
       } catch (error) {
-        console.error("Error deleting task:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -253,7 +314,6 @@ async function run() {
         );
         res.json({ message: "Coin refunded", result });
       } catch (error) {
-        console.error("Error refunding coin:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -285,7 +345,6 @@ async function run() {
 
         res.json({ message: "Coin deducted", result });
       } catch (error) {
-        console.error("Error deducting coin:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -306,8 +365,7 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
