@@ -45,6 +45,27 @@ async function run() {
     })
 
 
+    // All users Delete API
+    app.delete('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
+      res.send(result);
+    });
+
+
+    // ALL users Role Update API
+    app.patch('/users/:id', async (req, res) => {
+      const id = req.params.id;
+      const { role } = req.body;
+      const result = await usersCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { role } }
+      );
+      res.send(result);
+    });
+
+
+
 
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
@@ -63,6 +84,18 @@ async function run() {
         res.status(500).json({ message: "Failed to add task" });
       }
     });
+
+
+    // All Task manage API for Admin
+    app.get('/tasks/all', async (req, res) => {
+      try {
+        const allTasks = await tasksCollection.find().toArray();
+        res.status(200).json(allTasks);
+      } catch (error) {
+        res.status(500).json({ message: "Internal Server Error" });
+      }
+    });
+
 
 
 
@@ -257,7 +290,6 @@ async function run() {
 
         res.status(200).json(task);
       } catch (error) {
-        console.error("Error fetching task by ID:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
@@ -289,7 +321,6 @@ async function run() {
           .toArray();
         res.status(200).json(availableTasks);
       } catch (error) {
-        console.error("Error fetching available tasks:", error);
         res.status(500).json({ message: "Internal Server Error" });
       }
     });
